@@ -4,6 +4,26 @@ import { db } from '../db';
 import { products, ProductSelect } from '../db/schema';
 import { ProductFormData, RemoteProduct } from '../types';
 
+type Listener = () => void;
+const changeListeners = new Set<Listener>();
+
+export const notifyProductsChanged = () => {
+  changeListeners.forEach((listener) => {
+    try {
+      listener();
+    } catch (e) {
+      console.warn('Error en listener de productos:', e);
+    }
+  });
+};
+
+export const subscribeProductsChanged = (listener: Listener) => {
+  changeListeners.add(listener);
+  return () => {
+    changeListeners.delete(listener);
+  };
+};
+
 export const productsRepository = {
   /**
    * Obtiene todos los productos de SQLite ordenados por fecha de actualización
@@ -36,19 +56,18 @@ export const productsRepository = {
     const clientId = Crypto.randomUUID();
     const now = new Date();
 
-    const result = await db
-      .insert(products)
-      .values({
-        clientId,
-        name: data.name.trim(),
-        quantity: Math.max(0, Math.floor(data.quantity)),
-        price: Math.max(0, Math.floor(data.price)),
-        updatedAt: now,
-        syncedAt: null,
-      })
-      .returning();
+    await db.insert(products).values({
+      clientId,
+      name: data.name.trim(),
+      quantity: Math.max(0, Math.floor(data.quantity)),
+      price: Math.max(0, Math.floor(data.price)),
+      updatedAt: now,
+      syncedAt: null,
+    });
 
-    return result[0];
+    notifyProductsChanged();
+    const created = await this.getByClientId(clientId);
+    return created!;
   },
 
   /**
@@ -58,7 +77,7 @@ export const productsRepository = {
   async update(id: number, data: ProductFormData): Promise<ProductSelect | null> {
     const now = new Date();
 
-    const result = await db
+    await db
       .update(products)
       .set({
         name: data.name.trim(),
@@ -66,10 +85,10 @@ export const productsRepository = {
         price: Math.max(0, Math.floor(data.price)),
         updatedAt: now,
       })
-      .where(eq(products.id, id))
-      .returning();
+      .where(eq(products.id, id));
 
-    return result[0] || null;
+    notifyProductsChanged();
+    return await this.getById(id);
   },
 
   /**
@@ -77,6 +96,7 @@ export const productsRepository = {
    */
   async delete(id: number): Promise<boolean> {
     await db.delete(products).where(eq(products.id, id));
+    notifyProductsChanged();
     return true;
   },
 
@@ -101,6 +121,8 @@ export const productsRepository = {
         syncedAt,
       })
       .where(eq(products.clientId, clientId));
+
+    notifyProductsChanged();
   },
 
   /**
@@ -118,19 +140,17 @@ export const productsRepository = {
         quantity: remote.quantity,
         price: remote.price,
         updatedAt: remoteUpdatedAt,
-        syncedAt: remoteUpdatedAt, // Se marca sincronizado
+        syncedAt: remoteUpdatedAt,
       });
+      notifyProductsChanged();
       return 'inserted';
     }
 
-    // Si ya existe localmente, verificar si el local tiene cambios pendientes
     const isLocalPending = !existing.syncedAt || existing.syncedAt < existing.updatedAt;
     if (isLocalPending) {
-      // Regla de seguridad: preservar los cambios locales pendientes para no perder trabajo offline
       return 'skipped';
     }
 
-    // Regla de conflicto "gana el último cambio": si el remoto es más reciente, actualizar
     if (remoteUpdatedAt.getTime() > existing.updatedAt.getTime()) {
       await db
         .update(products)
@@ -142,6 +162,7 @@ export const productsRepository = {
           syncedAt: remoteUpdatedAt,
         })
         .where(eq(products.id, existing.id));
+      notifyProductsChanged();
       return 'updated';
     }
 

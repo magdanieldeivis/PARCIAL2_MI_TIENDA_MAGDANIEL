@@ -19,7 +19,14 @@ import { ProductSelect } from '../db/schema';
 export default function InventarioScreen() {
   const router = useRouter();
   const { user, signOut } = useAuth();
-  const { products, totalUnits, totalValue, pendingCount, deleteProduct } = useProducts();
+  const {
+    products,
+    totalUnits,
+    totalValue,
+    pendingCount,
+    deleteProduct,
+    refreshProducts,
+  } = useProducts();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [syncing, setSyncing] = useState(false);
@@ -39,6 +46,7 @@ export default function InventarioScreen() {
     setSyncFeedback(null);
     try {
       const result = await syncProducts(user?.id);
+      await refreshProducts();
       setSyncFeedback({
         text: result.message,
         isError: !result.success,
@@ -205,7 +213,14 @@ export default function InventarioScreen() {
         data={filteredProducts}
         keyExtractor={(item) => item.id.toString()}
         refreshControl={
-          <RefreshControl refreshing={syncing} onRefresh={handleSync} colors={['#2563EB']} />
+          <RefreshControl
+            refreshing={syncing}
+            onRefresh={async () => {
+              await handleSync();
+              await refreshProducts();
+            }}
+            colors={['#2563EB']}
+          />
         }
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={
