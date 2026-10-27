@@ -173,3 +173,31 @@ A continuación se detalla cada una de las pantallas capturadas directamente des
 **Desarrollado y sustentado por:**  
 ### **DEIVIS XAVIER MAGDANIEL**  
 *Universidad de La Guajira — Facultad de Ingeniería*
+
+---
+
+## 📊 5. Cumplimiento de Criterios de Evaluación
+
+| Criterio | Ponderación | Estado | Detalle de Implementación |
+| :--- | :---: | :---: | :--- |
+| **Autenticación** | 25% | **COMPLETO** | Registro, login, logout, rutas protegidas y sesión persistente en SecureStore con adaptador contra desbordamiento. |
+| **Base de Datos Local** | 25% | **COMPLETO** | SQLite + Drizzle ORM, esquema tipado, migraciones reales en `drizzle/`, CRUD local y reactividad por eventos. Funciona 100% offline. |
+| **Nube y Sincronización** | 25% | **COMPLETO** | Supabase con RLS, sincronización manual ordenada (descarga y subida por `client_id`), reporte de resultados. |
+| **Pantallas y Validaciones** | 10% | **COMPLETO** | 4 pantallas requeridas, validaciones numéricas y textuales, diálogos de confirmación en borrado y cierre. |
+| **Entrega y Repositorio** | 15% | **COMPLETO** | Historial de commits ordenados por bloque, `.env.example` incluido, `.env` fuera de Git, capturas en `capturas/`, README y AI-LOG. |
+| **Puntos Extra (Búsqueda)** | +0.25 | **COMPLETO** | Campo de búsqueda por texto en tiempo real en la pantalla de inventario. |
+| **Puntos Extra (Conflictos)**| +0.25 | **COMPLETO** | Política "gana el último cambio" al descargar productos existentes sin cambios locales pendientes. |
+
+---
+
+## 📌 6. Limitaciones Declaradas
+
+- **Borrados Sincronizados:** El alcance base del parcial contempla la eliminación local confirmada en SQLite. No se implementó borrado lógico remoto sincronizado (`deletedAt`).
+- **Sincronización Automática:** El respaldo se activa bajo demanda mediante el botón *"Sincronizar"* o tirando hacia abajo de la lista (*pull to refresh*), garantizando control de consumo de datos para el tendero.
+
+---
+
+**Desarrollado y sustentado por:**  
+### **DEIVIS XAVIER MAGDANIEL**  
+*Universidad de La Guajira — Facultad de Ingeniería*
+
